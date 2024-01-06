@@ -1,0 +1,17 @@
+body {
+    background-color: black;
+    color: whitesmoke;
+}
+
+article, section {
+    border: 2px solid whitesmoke;
+    padding: 10px;
+}
+
+article {
+    margin-bottom: 30px;
+}
+
+section {
+    width: max-content;
+}

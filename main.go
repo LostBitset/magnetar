@@ -4,17 +4,27 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 )
 
 func SetupServeMux(mux *http.ServeMux) {
-	HandleFunc(mux, "/folder", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("TODO"))
-	})
-	HandleFunc(mux, "/file", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("TODO"))
-	})
 	HandleStaticFile(mux, "/favicon.ico", "favicon.ico", "image/x-icon")
-	HandleStaticRedirect(mux, "/", "/folder?path=%2F")
+	HandleStaticFile(mux, "/style.css", "output/style.css", "text/css")
+	HandleFunc(mux, "/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "text/html")
+		concept, _ := strings.CutPrefix(r.URL.Path, "/")
+		if strings.Contains(concept, "..") {
+			w.Write([]byte("<h1>Relative Paths are not allowed.</h1>"))
+			return
+		}
+		content, err := os.ReadFile("output/" + concept + ".html")
+		if err == nil {
+			w.Write(content)
+		} else {
+			fmt.Fprintln(os.Stderr, err.Error())
+			w.WriteHeader(500)
+		}
+	})
 }
 
 type LoggableResponseWriter struct {
@@ -44,13 +54,6 @@ func HandleFunc(
 			"[page] (HTTP %d) %s <- %s\n",
 			wLoggable.statusCode, pattern, r.URL.String(),
 		)
-	})
-}
-
-func HandleStaticRedirect(mux *http.ServeMux, pattern string, to string) {
-	HandleFunc(mux, pattern, func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Location", to)
-		w.WriteHeader(301)
 	})
 }
 
