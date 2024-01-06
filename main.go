@@ -7,9 +7,21 @@ import (
 	"strings"
 )
 
+func PerformUpdate(k string, v string) {
+	fmt.Println("TODO")
+}
+
 func SetupServeMux(mux *http.ServeMux) {
 	HandleStaticFile(mux, "/favicon.ico", "favicon.ico", "image/x-icon")
 	HandleStaticFile(mux, "/style.css", "output/style.css", "text/css")
+	HandleFunc(mux, "/__update__", func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
+		if !(query.Has("k") && query.Has("v")) {
+			w.WriteHeader(400)
+		}
+		k, v := query.Get("k"), query.Get("v")
+		PerformUpdate(k, v)
+	})
 	HandleFunc(mux, "/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "text/html")
 		concept, _ := strings.CutPrefix(r.URL.Path, "/")
@@ -18,8 +30,12 @@ func SetupServeMux(mux *http.ServeMux) {
 			return
 		}
 		content, err := os.ReadFile("output/" + concept + ".html")
+		editable := strings.ReplaceAll(
+			string(content),
+			"data-mtar-ref=", "contenteditable oninput=\"up(this)\" data-mtar-ref=",
+		)
 		if err == nil {
-			w.Write(content)
+			w.Write([]byte(editable))
 		} else {
 			fmt.Fprintln(os.Stderr, err.Error())
 			w.WriteHeader(500)

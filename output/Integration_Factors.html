@@ -7,6 +7,33 @@
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+    <script>
+    let escapeMode = new Set();
+    function up(el) {
+        let k = el.attributes["data-mtar-ref"].value;
+        let last = el.innerText.at(-1);
+        if (el.innerText.replaceAll("\n", "") === "") {
+            el.remove();
+        } else if (last == '\\') {
+            escapeMode.add(k);
+        } else if (escapeMode.has(k)) {
+            fetch(`/__update__?k=${k}&v=${el.innerText.slice(0, -2) + last}`);
+            escapeMode.delete(k);
+        } else if (el.innerText.endsWith("\n\n")) {
+            el.innerText = el.innerText.replace("\n", "");
+            let nextFragment = document.createElement("p");
+            el.parentNode.appendChild(nextFragment);
+            let kSplit = k.split(":");
+            let kNextFrag = kSplit[0] + kSplit[1] + parseInt(kSplit[2] + 1);
+            nextFragment.setAttribute("data-mtar-ref", kNextFrag);
+            nextFragment.setAttribute("contenteditable", true);
+            nextFragment.oninput = () => up(nextFragment);
+            nextFragment.focus();
+        } else {
+            fetch(`/__update__?k=${k}&v=${el.innerText}`)
+        }
+    }
+    </script>
     <article>
         <h1 data-mtar-ref="Integration_Factors">Integration Factors</h1>
         <section>
