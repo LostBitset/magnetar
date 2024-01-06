@@ -13,5 +13,6 @@ article {
 }
 
 section {
+    margin: auto;
     width: max-content;
 }
