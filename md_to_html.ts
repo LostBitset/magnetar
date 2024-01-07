@@ -4,6 +4,7 @@ import markedKatex from 'marked-katex-extension';
 import hljs from 'highlight.js';
 import { markedHighlight } from 'marked-highlight';
 
+// @ts-ignore
 import css from 'highlight.js/styles/atom-one-dark.min.css';
 
 const gfmAlertTypes = {
@@ -14,7 +15,7 @@ const gfmAlertTypes = {
     "caution": "#f85149",
 };
 
-function gfmAlertCss([name, color]) {
+function gfmAlertCss([name, color]: [string, string]): string {
     return `
 .gfm-alert-${name} .gfm-alert-title {
     color: ${color};
@@ -78,7 +79,10 @@ let customMarked = new Marked(markedHighlight({
         output: "mathml",
     }));
 
-export function toHtml(md) {
-    let head = head1 + md.match(/^# .*/)[0].slice(2) + head2;
+export function toHtml(md: string): string {
+    let titleSegment = md.match(/^# .*/);
+    let head = head1 + (
+        titleSegment ? titleSegment[0].slice(2) : "Untitled"
+    ) + head2;
     return head + `<body>${customMarked.parse(md)}</body>`;
 }
