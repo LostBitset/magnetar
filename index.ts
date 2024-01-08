@@ -28,7 +28,8 @@ Bun.serve({
     async fetch(req) {
         let url = new URL(req.url);
         if (url.pathname === "/") {
-            return notFoundResponse("1");
+            let md = "# This is the home page";
+            return htmlResponse(toHtml(md));
         } else if (url.pathname.startsWith("/edit/")) {
             return notFoundResponse("2");
         } else if (url.pathname.startsWith("/view/")) {
