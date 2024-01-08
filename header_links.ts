@@ -22,8 +22,16 @@ function countOccurences(s: string, c: string, start: number & keyof typeof s): 
     return count;
 }
 
+function sliceUntil(s: string, c: string, start: number & keyof typeof s): string {
+    let end = start;
+    while (s.slice(end, end + c.length) !== c) {
+        end += 1;
+    }
+    return s.slice(start, end);
+}
+
 const headerRegexes = [1, 2, 3, 4, 5, 6].map(
-    i => new RegExp(`^#{1,${i}} `)
+    i => new RegExp(`^#{1,${i}} `, "m")
 );
 
 export async function populateHeaderIndex(headerIndex: HeaderIndex) {
@@ -35,22 +43,28 @@ export async function populateHeaderIndex(headerIndex: HeaderIndex) {
         let octothorpes: number & keyof typeof text = 0;
         contentLoop: 
             while (true) {
-                start = text.slice(start + octothorpes).search(/^#+ /);
-                console.log(start + octothorpes);
-                console.log("---");
+                let offset = start + octothorpes;
+                start = text.slice(offset).search(/^#+ /m);
                 if (start >= 0) {
-                    start += end;
+                    start += offset;
                 } else {
                     break contentLoop;
                 }
-                octothorpes = countOccurences(text, "#", start);
-                end = text.slice(start + octothorpes).search(headerRegexes[octothorpes - 1]);
-                if (end === -1) {
-                    end = text.length;
+                octothorpes = countOccurences(text, "#", offset);
+                offset = start + octothorpes;
+                end = text.slice(offset).search(headerRegexes[octothorpes - 1]);
+                if (end >= 0) {
+                    end += offset;
                 } else {
-                    end += start;
+                    end = text.length;
                 }
-                console.log(start, end);
+                if (octothorpes === 0) continue;
+                let key = sliceUntil(text, "\n", offset + 1);
+                if (!headerIndex.has(key)) headerIndex.set(key, [])
+                headerIndex.get(key)!.push({
+                    path, start, end,
+                });
             }
     }
+    console.log(headerIndex);
 }
