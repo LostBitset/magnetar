@@ -22,6 +22,11 @@ type HeaderRef = {
     end: number,
 };
 
+export async function readHeaderRef(ref: HeaderRef): Promise<string> {
+    let file = Bun.file(`./content/${ref.path}.md`);
+    return (await file.text()).slice(ref.start, ref.end);
+}
+
 function countOccurences(s: string, c: string, start: number & keyof typeof s): number {
     let i = start;
     let count = 0;

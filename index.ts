@@ -1,5 +1,7 @@
 import { toHtml } from "./md_to_html";
-import { addHeaderLinks, populateHeaderIndex, type HeaderIndex } from "./header_links";
+import {
+    addHeaderLinks, populateHeaderIndex, type HeaderIndex, readHeaderRef,
+} from "./header_links";
 
 function htmlResponse(src: string): Response {
     let html: string;
@@ -34,6 +36,16 @@ Bun.serve({
             let file = Bun.file(`./content/${what}.md`)
             return htmlResponse(
                 toHtml(addHeaderLinks(await file.text(), headerIndex))
+            );
+        } else if (url.pathname.startsWith("/headers/")) {
+            let what = decodeURIComponent(url.pathname.slice("/headers/".length));
+            let refs = headerIndex.get(what);
+            if (!refs) return htmlResponse(toHtml("# Something Went Wrong"));
+            return htmlResponse(
+                toHtml(addHeaderLinks(
+                    (await Promise.all(refs.map(readHeaderRef))).join(),
+                    headerIndex,
+                ))
             );
         } else {
             return notFoundResponse(toHtml("# Page Not Found"));
