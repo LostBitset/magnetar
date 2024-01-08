@@ -6,7 +6,7 @@ $$e^{i\pi} + 1 = 0$$
 
 ## Here's some more stuff
 
-yay
+yay and even more stuff
 
 ## And even more stuff
 

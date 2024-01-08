@@ -1,7 +1,17 @@
 import { listMdSources } from "./list_md_sources";
 
 export function addHeaderLinks(md: string, headerIndex: HeaderIndex): string {
-
+    let output = md;
+    for (const key of headerIndex.keys()) {
+        // Credit to http://stackoverflow.com/a/3561711/556609
+        let keyEsc = key.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&');
+        let keyRegex = new RegExp(keyEsc, "gi")
+        output = output.replaceAll(
+            keyRegex,
+            match => `[${match}](/headers/${encodeURIComponent(key)})`,
+        );
+    }
+    return output;
 }
 
 export type HeaderIndex = Map<string, HeaderRef[]>;
@@ -66,5 +76,4 @@ export async function populateHeaderIndex(headerIndex: HeaderIndex) {
                 });
             }
     }
-    console.log(headerIndex);
 }
