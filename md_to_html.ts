@@ -60,13 +60,15 @@ p {
 pre {
     width: max-content;
 }
+a {
+    color: white;
+}
 body {
     background-color: #111;
     color: white;
 }
 </style>
 `.trim();
-
 
 let customMarked = new Marked(markedHighlight({
     langPrefix: "hljs language-",
