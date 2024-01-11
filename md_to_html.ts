@@ -87,7 +87,6 @@ export function toHtml(md: string, forcedTitle?: string): string {
         let titleSegment = md.match(/^# .*/);
         if (titleSegment) {
             let linkMatch = titleSegment[0].match(/\[(.*)\]\(.*\)/);
-            console.log(linkMatch);
             title = linkMatch ? linkMatch[1] : titleSegment[0].slice(2);
         }
     }
