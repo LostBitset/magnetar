@@ -2,6 +2,7 @@ import { toHtml } from "./md_to_html";
 import {
     addHeaderLinks, populateHeaderIndex, type HeaderIndex, readHeaderRef,
 } from "./header_links";
+import { listMdSources } from "./list_md_sources";
 
 function htmlResponse(src: string): Response {
     let html: string;
@@ -20,6 +21,10 @@ function notFoundResponse(html: string): Response {
     })
 }
 
+function homeLine(p1: string, p2: string): string {
+    return `- [${p2}](/view/${p1}/${p2})`;
+}
+
 let headerIndex: HeaderIndex = new Map();
 
 populateHeaderIndex(headerIndex);
@@ -28,7 +33,15 @@ Bun.serve({
     async fetch(req) {
         let url = new URL(req.url);
         if (url.pathname === "/") {
-            let md = "# This is the home page";
+            let map = new Map<string, string[]>();
+            for await (const pair of listMdSources()) {
+                let [k, v] = pair.split("/");
+                if (!map.has(k)) map.set(k, []);
+                map.get(k)!.push(v);
+            }
+            let md = Array.from(map.entries()).map(
+                ([h, items]) => `# ${h}\n${items.map(i => homeLine(h, i)).join()}`
+            ).join();
             return htmlResponse(toHtml(md));
         } else if (url.pathname.startsWith("/edit/")) {
             return notFoundResponse("2");
