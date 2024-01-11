@@ -55,12 +55,12 @@ Bun.serve({
             let what = decodeURIComponent(url.pathname.slice("/headers/".length));
             let refs = headerIndex.get(what);
             if (!refs) return htmlResponse(toHtml("# Something Went Wrong"));
-            return htmlResponse(
-                toHtml(addHeaderLinks(
-                    (await Promise.all(refs.map(readHeaderRef))).join(),
-                    headerIndex,
-                ))
+            let md = addHeaderLinks(
+                (await Promise.all(refs.map(readHeaderRef))).join(),
+                headerIndex,
             );
+            console.log(md);
+            return htmlResponse(toHtml(md, what));
         } else {
             return notFoundResponse(toHtml("# Page Not Found"));
         }

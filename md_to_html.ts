@@ -81,14 +81,17 @@ let customMarked = new Marked(markedHighlight({
         output: "mathml",
     }));
 
-export function toHtml(md: string): string {
-    let titleSegment = md.match(/^# .*/);
-    let title = "Untitled";
-    if (titleSegment) {
-        let linkMatch = titleSegment[0].match(/\[(.*)\]\(.*\)/);
-        console.log(linkMatch);
-        title = linkMatch ? linkMatch[1] : titleSegment[0].slice(2);
+export function toHtml(md: string, forcedTitle?: string): string {
+    let title = forcedTitle;
+    if (!title) {
+        let titleSegment = md.match(/^# .*/);
+        if (titleSegment) {
+            let linkMatch = titleSegment[0].match(/\[(.*)\]\(.*\)/);
+            console.log(linkMatch);
+            title = linkMatch ? linkMatch[1] : titleSegment[0].slice(2);
+        }
     }
+    if (!title) title = "No Title :(";
     let head = head1 + title + head2;
     return head + `<body>${customMarked.parse(md)}</body>`;
 }
