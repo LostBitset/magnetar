@@ -42,7 +42,7 @@ Bun.serve({
             let md = Array.from(map.entries()).map(
                 ([h, items]) => `# ${h}\n${items.map(i => homeLine(h, i)).join()}`
             ).join();
-            return htmlResponse(toHtml(md));
+            return htmlResponse(toHtml(md, "(Magnetar Home)"));
         } else if (url.pathname.startsWith("/edit/")) {
             return notFoundResponse("2");
         } else if (url.pathname.startsWith("/view/")) {
