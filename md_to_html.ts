@@ -83,8 +83,12 @@ let customMarked = new Marked(markedHighlight({
 
 export function toHtml(md: string): string {
     let titleSegment = md.match(/^# .*/);
-    let head = head1 + (
-        titleSegment ? titleSegment[0].slice(2) : "Untitled"
-    ) + head2;
+    let title = "Untitled";
+    if (titleSegment) {
+        let linkMatch = titleSegment[0].match(/\[(.*)\]\(.*\)/);
+        console.log(linkMatch);
+        title = linkMatch ? linkMatch[1] : titleSegment[0].slice(2);
+    }
+    let head = head1 + title + head2;
     return head + `<body>${customMarked.parse(md)}</body>`;
 }
