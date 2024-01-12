@@ -60,6 +60,8 @@ Bun.serve({
                         textarea.editor {
                             width: calc(100% - 16px);
                             height: 100%;
+                            color: inherit;
+                            background-color: inherit;
                         }
                         </style>
                     `.trim(),
