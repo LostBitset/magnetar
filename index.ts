@@ -22,7 +22,7 @@ function notFoundResponse(html: string): Response {
 }
 
 function homeLine(p1: string, p2: string): string {
-    return `- [${p2}](/view/${p1}/${p2})`;
+    return `- [${p2}](/view/${p1}/${p2}) \([edit](/edit/${p1}/${p2})\)`;
 }
 
 let headerIndex: HeaderIndex = new Map();
@@ -44,6 +44,22 @@ Bun.serve({
             ).join();
             return htmlResponse(toHtml(md, "(Magnetar Home)"));
         } else if (url.pathname.startsWith("/edit/")) {
+            let what = url.pathname.slice("/edit/".length);
+            let file = Bun.file(`./content/${what}.md`)
+            return htmlResponse(
+                toHtml(addHeaderLinks(await file.text(), headerIndex))
+                    .replace(
+                        "<body>",
+                        `
+                        <body>
+                            <div style="float: left; width: 50%">
+                                <textarea style="width: calc(100% - (2 * 8px))">hi</textarea>
+                            </div>
+                            <div style="float: left">
+                        `.trim(),
+                    )
+                    .replace("</body>", "</div></body>")
+            );
             return notFoundResponse("2");
         } else if (url.pathname.startsWith("/view/")) {
             let what = url.pathname.slice("/view/".length);
