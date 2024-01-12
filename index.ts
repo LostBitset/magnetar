@@ -63,6 +63,9 @@ Bun.serve({
                             color: inherit;
                             background-color: inherit;
                         }
+                        textarea:focus {
+                            outline: none;
+                        }
                         </style>
                     `.trim(),
                 )
