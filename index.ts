@@ -48,17 +48,34 @@ Bun.serve({
             let file = Bun.file(`./content/${what}.md`)
             return htmlResponse(
                 toHtml(addHeaderLinks(await file.text(), headerIndex))
+                .replace(
+                    "<head>",
+                    `
+                    <head>
+                        <style>
+                        .split-wrapper {
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                        }
+                        textarea.editor {
+                            width: calc(100% - 16px);
+                            height: 100%;
+                        }
+                        </style>
+                    `.trim(),
+                )
                     .replace(
                         "<body>",
                         `
                         <body>
-                            <div style="float: left; width: 50%">
-                                <textarea style="width: calc(100% - (2 * 8px))">hi</textarea>
-                            </div>
-                            <div style="float: left">
+                            <div class="split-wrapper">
+                                <div>
+                                    <textarea class="editor">hi</textarea>
+                                </div>
+                                <div>
                         `.trim(),
                     )
-                    .replace("</body>", "</div></body>")
+                    .replace("</body>", "</div></div></body>")
             );
             return notFoundResponse("2");
         } else if (url.pathname.startsWith("/view/")) {
