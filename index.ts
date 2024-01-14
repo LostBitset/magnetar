@@ -3,7 +3,6 @@ import {
     addHeaderLinks, populateHeaderIndex, type HeaderIndex, readHeaderRef,
 } from "./header_links";
 import { listMdSources } from "./list_md_sources";
-import { escapeHTML } from "bun";
 
 function htmlResponse(src: string): Response {
     let html: string;
@@ -27,8 +26,18 @@ function homeLine(p1: string, p2: string): string {
 }
 
 function editableify(path: string, contentNow: string): string {
-    const updater = 
-        `oninput="document.getElementById('editresult').contentWindow.location.reload()"`;
+    const fetchpath = `/api.write/${path}`;
+    const fetchjs = `fetch('${fetchpath}', {
+        method: 'POST',
+        cache: 'no-cache',
+        headers: {
+            'Content-Type': 'text/markdown',
+            'X-Csrf-Protection': 'sherbert lemon',
+        },
+        body: this.value,
+    })`;
+    const reloadjs = "document.getElementById('editresult').contentWindow.location.reload()";
+    const updatejs =`await ${fetchjs};${reloadjs}`;
     return toHtml("")
         .replace(
             "<head>",
@@ -65,7 +74,9 @@ function editableify(path: string, contentNow: string): string {
             <body>
                 <div class="split-wrapper">
                     <div>
-                        <textarea ${updater} class="editor">${escapeHTML(contentNow)}</textarea>
+                        <textarea
+                            oninput="${updatejs}" class="editor"
+                        >${Bun.escapeHTML(contentNow)}</textarea>
                     </div>
                     <div>
                         <iframe src="/view/${path}" id="editresult">
