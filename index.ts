@@ -26,8 +26,10 @@ function homeLine(p1: string, p2: string): string {
     return `- [${p2}](/view/${p1}/${p2}) \([edit](/edit/${p1}/${p2})\)`;
 }
 
-function editableify(html: string, content: string): string {
-    return html
+function editableify(path: string, contentNow: string): string {
+    const updater = 
+        `oninput="document.getElementById('editresult').contentWindow.location.reload()"`;
+    return toHtml("")
         .replace(
             "<head>",
             `
@@ -38,13 +40,21 @@ function editableify(html: string, content: string): string {
                     grid-template-columns: 1fr 1fr;
                 }
                 textarea.editor {
+                    position: absolute;
                     width: calc(100% - 16px);
                     height: 100%;
                     color: inherit;
                     background-color: inherit;
+                    border: none;
                 }
                 textarea:focus {
                     outline: none;
+                }
+                iframe#editresult {
+                    border: none;
+                    position: absolute;
+                    width: 50%;
+                    height: 100%;
                 }
                 </style>
             `.trim(),
@@ -55,9 +65,10 @@ function editableify(html: string, content: string): string {
             <body>
                 <div class="split-wrapper">
                     <div>
-                        <textarea class="editor">${escapeHTML(content)}</textarea>
+                        <textarea ${updater} class="editor">${escapeHTML(contentNow)}</textarea>
                     </div>
                     <div>
+                        <iframe src="/view/${path}" id="editresult">
             `.trim(),
         )
         .replace("</body>", "</div></div></body>")
@@ -86,10 +97,7 @@ Bun.serve({
             let file = Bun.file(`./content/${what}.md`);
             let content = await file.text();
             return htmlResponse(
-                editableify(
-                    toHtml(addHeaderLinks(content, headerIndex)),
-                    content,
-                )
+                editableify(what, content)
             );
         } else if (url.pathname.startsWith("/view/")) {
             let what = url.pathname.slice("/view/".length);
