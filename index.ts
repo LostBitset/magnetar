@@ -3,6 +3,7 @@ import {
     addHeaderLinks, populateHeaderIndex, type HeaderIndex, readHeaderRef,
 } from "./header_links";
 import { listMdSources } from "./list_md_sources";
+import { escapeHTML } from "bun";
 
 function htmlResponse(src: string): Response {
     let html: string;
@@ -25,6 +26,43 @@ function homeLine(p1: string, p2: string): string {
     return `- [${p2}](/view/${p1}/${p2}) \([edit](/edit/${p1}/${p2})\)`;
 }
 
+function editableify(html: string, content: string): string {
+    return html
+        .replace(
+            "<head>",
+            `
+            <head>
+                <style>
+                .split-wrapper {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                }
+                textarea.editor {
+                    width: calc(100% - 16px);
+                    height: 100%;
+                    color: inherit;
+                    background-color: inherit;
+                }
+                textarea:focus {
+                    outline: none;
+                }
+                </style>
+            `.trim(),
+        )
+        .replace(
+            "<body>",
+            `
+            <body>
+                <div class="split-wrapper">
+                    <div>
+                        <textarea class="editor">${escapeHTML(content)}</textarea>
+                    </div>
+                    <div>
+            `.trim(),
+        )
+        .replace("</body>", "</div></div></body>")
+}
+
 let headerIndex: HeaderIndex = new Map();
 
 populateHeaderIndex(headerIndex);
@@ -45,47 +83,17 @@ Bun.serve({
             return htmlResponse(toHtml(md, "(Magnetar Home)"));
         } else if (url.pathname.startsWith("/edit/")) {
             let what = url.pathname.slice("/edit/".length);
-            let file = Bun.file(`./content/${what}.md`)
+            let file = Bun.file(`./content/${what}.md`);
+            let content = await file.text();
             return htmlResponse(
-                toHtml(addHeaderLinks(await file.text(), headerIndex))
-                .replace(
-                    "<head>",
-                    `
-                    <head>
-                        <style>
-                        .split-wrapper {
-                            display: grid;
-                            grid-template-columns: 1fr 1fr;
-                        }
-                        textarea.editor {
-                            width: calc(100% - 16px);
-                            height: 100%;
-                            color: inherit;
-                            background-color: inherit;
-                        }
-                        textarea:focus {
-                            outline: none;
-                        }
-                        </style>
-                    `.trim(),
+                editableify(
+                    toHtml(addHeaderLinks(content, headerIndex)),
+                    content,
                 )
-                    .replace(
-                        "<body>",
-                        `
-                        <body>
-                            <div class="split-wrapper">
-                                <div>
-                                    <textarea class="editor">hi</textarea>
-                                </div>
-                                <div>
-                        `.trim(),
-                    )
-                    .replace("</body>", "</div></div></body>")
             );
-            return notFoundResponse("2");
         } else if (url.pathname.startsWith("/view/")) {
             let what = url.pathname.slice("/view/".length);
-            let file = Bun.file(`./content/${what}.md`)
+            let file = Bun.file(`./content/${what}.md`);
             return htmlResponse(
                 toHtml(addHeaderLinks(await file.text(), headerIndex))
             );
