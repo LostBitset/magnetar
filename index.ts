@@ -25,7 +25,7 @@ function homeLine(p1: string, p2: string): string {
     return `- [${p2}](/view/${p1}/${p2}) \([edit](/edit/${p1}/${p2})\)`;
 }
 
-function editableify(path: string, contentNow: string): string {
+function editableify(path: string, contentNow: string, title?: string): string {
     const fetchpath = `/api.write/${path}`;
     const fetchjs = `fetch('${fetchpath}', {
         method: 'POST',
@@ -38,7 +38,7 @@ function editableify(path: string, contentNow: string): string {
     })`;
     const reloadjs = "document.getElementById('editresult').contentWindow.location.reload()";
     const updatejs =`${fetchjs}.then(() => ${reloadjs})`;
-    return toHtml("")
+    return toHtml("", title)
         .replace(
             "<head>",
             `
@@ -92,6 +92,11 @@ populateHeaderIndex(headerIndex);
 Bun.serve({
     async fetch(req) {
         let url = new URL(req.url);
+        if (url.pathname.startsWith("/api.")) {
+            if (req.headers.get("X-Csrf-Protection") !== "sherbert lemon") {
+                return new Response("no sea surfing", { status: 400 });
+            }
+        }
         if (url.pathname === "/") {
             let map = new Map<string, string[]>();
             for await (const pair of listMdSources()) {
@@ -108,7 +113,11 @@ Bun.serve({
             let file = Bun.file(`./content/${what}.md`);
             let content = await file.text();
             return htmlResponse(
-                editableify(what, content)
+                editableify(
+                    what,
+                    content,
+                    `[Editing] ${what.slice(what.indexOf("/") + 1)}`,
+                ),
             );
         } else if (url.pathname.startsWith("/view/")) {
             let what = url.pathname.slice("/view/".length);
@@ -125,6 +134,21 @@ Bun.serve({
                 headerIndex,
             );
             return htmlResponse(toHtml(md, `"${what}"`));
+        } else if (url.pathname.startsWith("/api.write/")) {
+            if (req.method.toUpperCase() !== "POST") {
+                return new Response("please POST", { status: 405 });
+            }
+            if (!req.body) {
+                return new Response("needs a body", { status: 400 });
+            }
+            let what = decodeURIComponent(url.pathname.slice("/api.write/".length));
+            let file = Bun.file(`./content/${what}.md`);
+            let writer = file.writer();
+            for await (const chunk of req.body!) {
+                writer.write(chunk);
+            }
+            writer.end();
+            return new Response("ok");
         } else {
             return notFoundResponse(toHtml("# Page Not Found"));
         }
