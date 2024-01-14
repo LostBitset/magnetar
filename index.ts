@@ -37,7 +37,7 @@ function editableify(path: string, contentNow: string): string {
         body: this.value,
     })`;
     const reloadjs = "document.getElementById('editresult').contentWindow.location.reload()";
-    const updatejs =`await ${fetchjs};${reloadjs}`;
+    const updatejs =`${fetchjs}.then(() => ${reloadjs})`;
     return toHtml("")
         .replace(
             "<head>",
