@@ -22,7 +22,8 @@ function notFoundResponse(html: string): Response {
 }
 
 function homeLine(p1: string, p2: string): string {
-    return `- [${p2}](/view/${p1}/${p2}) \([edit](/edit/${p1}/${p2})\)`;
+    const link = (text: string, path: string) => `[${text}](/${path}/${p1}/${p2})`
+    return `- ${link(p2, "view")} ${link("✏️", "edit")} ${link("🗑️", "confirm_delete")}`;
 }
 
 function editableify(path: string, contentNow: string, title?: string): string {
@@ -32,7 +33,6 @@ function editableify(path: string, contentNow: string, title?: string): string {
         cache: 'no-cache',
         headers: {
             'Content-Type': 'text/markdown',
-            'X-Csrf-Protection': 'sherbert lemon',
         },
         body: this.value,
     })`;
@@ -85,6 +85,30 @@ function editableify(path: string, contentNow: string, title?: string): string {
         .replace("</body>", "</div></div></body>")
 }
 
+function confirmDeletePage(path: string): string {
+    return toHtml("", "Are you sure?")
+        .replace(
+            "<body>",
+            `
+            <body>
+                <script>
+                let result = confirm('Are you sure you want to delete ${path}?');
+                if (result) {
+                    fetch('/api.delete/${path}', {
+                        method: 'POST',
+                        cache: 'no-cache',
+                    })
+                        .then(() => {
+                            window.history.back();
+                        });
+                } else {
+                    window.history.back();
+                }
+                </script>
+            `.trim(),
+        )
+}
+
 let headerIndex: HeaderIndex = new Map();
 
 populateHeaderIndex(headerIndex);
@@ -92,12 +116,24 @@ populateHeaderIndex(headerIndex);
 Bun.serve({
     async fetch(req) {
         let url = new URL(req.url);
+        console.log(`┏━━ ${url.pathname}`);
+        const route = (start?: string) => {
+            const matches = start ? url.pathname.startsWith(start) : url.pathname === "/";
+            if (matches) {
+                console.log(`┗━━ ${start ?? "/"}...`);
+            }
+            return matches;
+        };
         if (url.pathname.startsWith("/api.")) {
-            if (req.headers.get("X-Csrf-Protection") !== "sherbert lemon") {
-                return new Response("no sea surfing", { status: 400 });
+            const origin = req.headers.get("Origin");
+            if (!origin) {
+                return new Response("origin not found", { status: 400 });
+            }
+            if (Bun.env["MAGNETAR_ORIGINS"]!.split(",").includes(origin)) {
+                return new Response("origin not allowed", { status: 400 });
             }
         }
-        if (url.pathname === "/") {
+        if (route()) {
             let map = new Map<string, string[]>();
             for await (const pair of listMdSources()) {
                 let [k, v] = pair.split("/");
@@ -108,7 +144,8 @@ Bun.serve({
                 ([h, items]) => `# ${h}\n${items.map(i => homeLine(h, i)).join()}`
             ).join();
             return htmlResponse(toHtml(md, "(Magnetar Home)"));
-        } else if (url.pathname.startsWith("/edit/")) {
+        }
+        if (route("/edit/")) {
             let what = url.pathname.slice("/edit/".length);
             let file = Bun.file(`./content/${what}.md`);
             let content = await file.text();
@@ -119,13 +156,15 @@ Bun.serve({
                     `[Editing] ${what.slice(what.indexOf("/") + 1)}`,
                 ),
             );
-        } else if (url.pathname.startsWith("/view/")) {
+        }
+        if (route("/view/")) {
             let what = url.pathname.slice("/view/".length);
             let file = Bun.file(`./content/${what}.md`);
             return htmlResponse(
                 toHtml(addHeaderLinks(await file.text(), headerIndex))
             );
-        } else if (url.pathname.startsWith("/headers/")) {
+        }
+        if (route("/headers/")) {
             let what = decodeURIComponent(url.pathname.slice("/headers/".length));
             let refs = headerIndex.get(what);
             if (!refs) return htmlResponse(toHtml("# Something Went Wrong"));
@@ -134,7 +173,12 @@ Bun.serve({
                 headerIndex,
             );
             return htmlResponse(toHtml(md, `"${what}"`));
-        } else if (url.pathname.startsWith("/api.write/")) {
+        }
+        if (route("/confirm_delete/")) {
+            let what = decodeURIComponent(url.pathname.slice("/confirm_delete/".length));
+            return htmlResponse(confirmDeletePage(what));
+        }
+        if (route("/api.write/")) {
             if (req.method.toUpperCase() !== "POST") {
                 return new Response("please POST", { status: 405 });
             }
@@ -149,9 +193,15 @@ Bun.serve({
             }
             writer.end();
             return new Response("ok");
-        } else {
-            return notFoundResponse(toHtml("# Page Not Found"));
         }
+        if (route("/api.delete/")) {
+            console.log("yo yo yo");
+            let what = decodeURIComponent(url.pathname.slice("/api.delete/".length));
+            console.log(`Deleting ${what}...`);
+            return new Response("ok");
+        }
+        console.log("┗━━ NOT FOUND")
+        return notFoundResponse(toHtml("# Page Not Found"));
     },
     port: 7400,
 });

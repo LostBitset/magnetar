@@ -67,6 +67,9 @@ body {
     background-color: #111;
     color: white;
 }
+a[href^="/edit/"], a[href^="/confirm_delete/"] {
+    text-decoration: none;
+}
 </style>
 `.trim();
 
