@@ -109,9 +109,17 @@ function confirmDeletePage(path: string): string {
         )
 }
 
-let headerIndex: HeaderIndex = new Map();
+const allowedOrigins = Bun.env["MAGNETAR_ORIGINS"]!.split(",");
+console.log(
+    `Registered allowed origins (${allowedOrigins}).`
+);
 
-populateHeaderIndex(headerIndex);
+let headerIndex: HeaderIndex = new Map();
+await populateHeaderIndex(headerIndex);
+console.log(`Created header index (${headerIndex.size} entries).`);
+
+const port = 7400;
+console.log(`Serving (on port ${port})...`);
 
 Bun.serve({
     async fetch(req) {
@@ -127,9 +135,11 @@ Bun.serve({
         if (url.pathname.startsWith("/api.")) {
             const origin = req.headers.get("Origin");
             if (!origin) {
+                console.log(`┗━━ ORIGIN NOT FOUND...`);
                 return new Response("origin not found", { status: 400 });
             }
-            if (Bun.env["MAGNETAR_ORIGINS"]!.split(",").includes(origin)) {
+            if (!allowedOrigins.includes(origin)) {
+                console.log(`┗━━ ORIGIN (${origin}) NOT ALLOWED...`);
                 return new Response("origin not allowed", { status: 400 });
             }
         }
@@ -195,7 +205,6 @@ Bun.serve({
             return new Response("ok");
         }
         if (route("/api.delete/")) {
-            console.log("yo yo yo");
             let what = decodeURIComponent(url.pathname.slice("/api.delete/".length));
             console.log(`Deleting ${what}...`);
             return new Response("ok");
@@ -203,5 +212,5 @@ Bun.serve({
         console.log("┗━━ NOT FOUND")
         return notFoundResponse(toHtml("# Page Not Found"));
     },
-    port: 7400,
+    port: port,
 });
