@@ -136,10 +136,10 @@ Bun.serve({
     async fetch(req) {
         let url = new URL(req.url);
         console.log(`┏━━ ${url.pathname}`);
-        const route = (start?: string) => {
+        const route = (start: string, exact?: "exact") => {
             const matches = start ? url.pathname.startsWith(start) : url.pathname === "/";
             if (matches) {
-                console.log(`┗■━ ${start ? `${start}...` : "(root)"}`);
+                console.log(`┗■━ ${exact ? "(exact match)" : `${start}...`}`);
             }
             return matches;
         };
@@ -163,11 +163,10 @@ Bun.serve({
                 return new Response("anti-csrf header invalid", { status: 400 });
             }
         }
-        if (url.pathname === "/favicon.ico") {
-            console.log(`┗■━ (favicon)`);
+        if (route("/favicon.ico", "exact")) {
             return new Response(Bun.file("./favicon.ico"));
         }
-        if (route()) {
+        if (route("/", "exact")) {
             let map = new Map<string, string[]>();
             for await (const pair of listMdSources()) {
                 let [k, v] = pair.split("/");
@@ -179,6 +178,13 @@ Bun.serve({
                     `${homeHeader(h)}\n${items.map(i => homeLine(h, i)).join()}\n${homeNewDir}`
             ).join();
             return htmlResponse(toHtml(md, "(Magnetar Home)"));
+        }
+        if (route("/new_dir", "exact")) {
+            // todo
+        }
+        if (route("/new_doc/")) {
+            const dir = url.pathname.slice("/new_doc/".length);
+            // todo
         }
         let secondSlashIndex = url.pathname.slice(1).indexOf("/");
         let what = url.pathname.slice(secondSlashIndex + 2);
