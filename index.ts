@@ -3,6 +3,7 @@ import {
     addHeaderLinks, populateHeaderIndex, type HeaderIndex, readHeaderRef,
 } from "./header_links";
 import { listMdSources } from "./list_md_sources";
+import { unlink } from "fs/promises";
 
 function htmlResponse(src: string): Response {
     let html: string;
@@ -135,11 +136,11 @@ Bun.serve({
         if (url.pathname.startsWith("/api.")) {
             const origin = req.headers.get("Origin");
             if (!origin) {
-                console.log(`┗━━ ORIGIN NOT FOUND...`);
+                console.log(`┗━━ ORIGIN NOT FOUND`);
                 return new Response("origin not found", { status: 400 });
             }
             if (!allowedOrigins.includes(origin)) {
-                console.log(`┗━━ ORIGIN (${origin}) NOT ALLOWED...`);
+                console.log(`┗━━ ORIGIN (${origin}) NOT ALLOWED`);
                 return new Response("origin not allowed", { status: 400 });
             }
         }
@@ -206,7 +207,7 @@ Bun.serve({
         }
         if (route("/api.delete/")) {
             let what = decodeURIComponent(url.pathname.slice("/api.delete/".length));
-            console.log(`Deleting ${what}...`);
+            await unlink(`./content/${what}.md`);
             return new Response("ok");
         }
         console.log("┗━━ NOT FOUND")
