@@ -22,6 +22,12 @@ function notFoundResponse(html: string): Response {
     })
 }
 
+const homeNewDir = "# [📚](/new_dir)";
+
+function homeHeader(p1: string): string {
+    return `# ${p1} [📕](/new_doc/${p1})`;
+}
+
 function homeLine(p1: string, p2: string): string {
     const link = (text: string, path: string) => `[${text}](/${path}/${p1}/${p2})`
     return `- ${link(p2, "view")} ${link("✏️", "edit")} ${link("🗑️", "confirm_delete")}`;
@@ -169,7 +175,8 @@ Bun.serve({
                 map.get(k)!.push(v);
             }
             let md = Array.from(map.entries()).map(
-                ([h, items]) => `# ${h}\n${items.map(i => homeLine(h, i)).join()}`
+                ([h, items]) =>
+                    `${homeHeader(h)}\n${items.map(i => homeLine(h, i)).join()}\n${homeNewDir}`
             ).join();
             return htmlResponse(toHtml(md, "(Magnetar Home)"));
         }

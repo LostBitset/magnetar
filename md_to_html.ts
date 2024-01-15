@@ -67,7 +67,7 @@ body {
     background-color: #111;
     color: white;
 }
-a[href^="/edit/"], a[href^="/confirm_delete/"] {
+a[href^="/edit/"], a[href^="/confirm_delete/"], a[href^="/new_doc/"], a[href="/new_dir"] {
     text-decoration: none;
 }
 </style>
