@@ -93,31 +93,45 @@ function editableify(path: string, contentNow: string, title?: string): string {
         .replace("</body>", "</div></div></body>")
 }
 
+function makePromptPage(title: string, resultjs: string, pathjs: string): string {
+    return toHtml("", title)
+    .replace(
+        "<body>",
+        `
+        <body>
+            <script>
+            let result = ${resultjs};
+            if (result) {
+                fetch(${pathjs}, {
+                    method: 'POST',
+                    cache: 'no-cache',
+                    headers: {
+                        'X-Csrf-Protection': 'sherbert lemon',
+                    },
+                })
+                    .then(() => {
+                        window.history.back();
+                    });
+            } else {
+                window.history.back();
+            }
+            </script>
+        `.trim(),
+    );
+}
+
+const newDirPage = makePromptPage(
+    "Creating a directory...",
+    `prompt('Choose a name for your directory:')`,
+    '`/api.new_dir/${result}`',
+);
+
 function confirmDeletePage(path: string): string {
-    return toHtml("", "Are you sure?")
-        .replace(
-            "<body>",
-            `
-            <body>
-                <script>
-                let result = confirm('Are you sure you want to delete ${path}?');
-                if (result) {
-                    fetch('/api.delete/${path}', {
-                        method: 'POST',
-                        cache: 'no-cache',
-                        headers: {
-                            'X-Csrf-Protection': 'sherbert lemon',
-                        },
-                    })
-                        .then(() => {
-                            window.history.back();
-                        });
-                } else {
-                    window.history.back();
-                }
-                </script>
-            `.trim(),
-        )
+    return makePromptPage(
+        "Are you sure?",
+        `confirm('Are you sure you want to delete ${path}?')`,
+        `'/api.delete/${path}'`,
+    );
 }
 
 const allowedOrigins = Bun.env["MAGNETAR_ORIGINS"]!.split(",");
@@ -180,11 +194,11 @@ Bun.serve({
             return htmlResponse(toHtml(md, "(Magnetar Home)"));
         }
         if (route("/new_dir", "exact")) {
-            // todo
+            return htmlResponse(newDirPage);
         }
         if (route("/new_doc/")) {
             const dir = url.pathname.slice("/new_doc/".length);
-            // todo
+            return htmlResponse(newDocPage(dir));
         }
         let secondSlashIndex = url.pathname.slice(1).indexOf("/");
         let what = url.pathname.slice(secondSlashIndex + 2);
@@ -240,6 +254,10 @@ Bun.serve({
         if (route("/api.delete/")) {
             await unlink(`./content/${what}.md`);
             return new Response("ok");
+        }
+        if (route("/api.new_dir/")) {
+            let dir = url.pathname.slice("/api.new_dir/".length);
+            console.log(`Creating directory ${dir}...`);
         }
         console.log("┗□━ NOT FOUND")
         return notFoundResponse(toHtml("# Page Not Found"));
