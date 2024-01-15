@@ -133,7 +133,7 @@ Bun.serve({
         const route = (start?: string) => {
             const matches = start ? url.pathname.startsWith(start) : url.pathname === "/";
             if (matches) {
-                console.log(`┗■━ ${start ?? "(root)"}...`);
+                console.log(`┗■━ ${start ? `${start}...` : "(root)"}`);
             }
             return matches;
         };
@@ -157,11 +157,9 @@ Bun.serve({
                 return new Response("anti-csrf header invalid", { status: 400 });
             }
         }
-        let secondSlashIndex = url.pathname.slice(1).indexOf("/");
-        let what = url.pathname.slice(secondSlashIndex + 2);
-        if (what.includes("..")) {
-            console.log(`┗□━ LFI ATTACK DETECTED`);
-            return new Response("lfi attack detected", { status: 400 });
+        if (url.pathname === "/favicon.ico") {
+            console.log(`┗■━ (favicon)`);
+            return new Response(Bun.file("./favicon.ico"));
         }
         if (route()) {
             let map = new Map<string, string[]>();
@@ -174,6 +172,13 @@ Bun.serve({
                 ([h, items]) => `# ${h}\n${items.map(i => homeLine(h, i)).join()}`
             ).join();
             return htmlResponse(toHtml(md, "(Magnetar Home)"));
+        }
+        let secondSlashIndex = url.pathname.slice(1).indexOf("/");
+        let what = url.pathname.slice(secondSlashIndex + 2);
+        console.log(`┃   ${" ".repeat(secondSlashIndex + 2)}${"▔".repeat(what.length)}`);
+        if (what.includes("..")) {
+            console.log(`┗□━ LFI ATTACK DETECTED`);
+            return new Response("lfi attack detected", { status: 400 });
         }
         if (route("/edit/")) {
             let file = Bun.file(`./content/${what}.md`);
