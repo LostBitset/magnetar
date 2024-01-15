@@ -3,7 +3,7 @@ import {
     addHeaderLinks, populateHeaderIndex, type HeaderIndex, readHeaderRef,
 } from "./header_links";
 import { listMdSources } from "./list_md_sources";
-import { unlink } from "fs/promises";
+import { mkdir, unlink } from "fs/promises";
 
 function htmlResponse(src: string): Response {
     let html: string;
@@ -151,7 +151,7 @@ Bun.serve({
         let url = new URL(req.url);
         console.log(`┏━━ ${url.pathname}`);
         const route = (start: string, exact?: "exact") => {
-            const matches = start ? url.pathname.startsWith(start) : url.pathname === "/";
+            const matches = exact ? url.pathname === start : url.pathname.startsWith(start);
             if (matches) {
                 console.log(`┗■━ ${exact ? "(exact match)" : `${start}...`}`);
             }
@@ -257,7 +257,8 @@ Bun.serve({
         }
         if (route("/api.new_dir/")) {
             let dir = url.pathname.slice("/api.new_dir/".length);
-            console.log(`Creating directory ${dir}...`);
+            await mkdir(`./content/${dir}`);
+            return new Response("ok");
         }
         console.log("┗□━ NOT FOUND")
         return notFoundResponse(toHtml("# Page Not Found"));
