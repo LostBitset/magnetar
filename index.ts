@@ -93,7 +93,9 @@ function editableify(path: string, contentNow: string, title?: string): string {
         .replace("</body>", "</div></div></body>")
 }
 
-function makePromptPage(title: string, resultjs: string, pathjs: string): string {
+function makePromptPage(
+    title: string, resultjs: string, pathjs: string, afterjs?: string,
+): string {
     return toHtml("", title)
     .replace(
         "<body>",
@@ -110,7 +112,7 @@ function makePromptPage(title: string, resultjs: string, pathjs: string): string
                     },
                 })
                     .then(() => {
-                        window.history.back();
+                        ${afterjs ?? "window.history.back();"}
                     });
             } else {
                 window.history.back();
@@ -124,6 +126,7 @@ const newDirPage = makePromptPage(
     "Creating a directory...",
     `prompt('Choose a name for your directory:')`,
     '`/api.new_dir/${result}`',
+    'window.history.pushState(`/new_doc/${result}`)',
 );
 
 function confirmDeletePage(path: string): string {
