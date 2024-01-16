@@ -25,11 +25,13 @@ function notFoundResponse(html: string): Response {
 const homeNewDir = "# [📚](/new_dir)";
 
 function homeHeader(p1: string): string {
-    return `# ${p1} [📕](/new_doc/${p1})`;
+    return `# ${decodeURIComponent(p1)} [📕](/new_doc/${p1})`;
 }
 
 function homeLine(p1: string, p2: string): string {
-    const link = (text: string, path: string) => `[${text}](/${path}/${p1}/${p2})`
+    const link =
+        (text: string, path: string) =>
+            `[${decodeURIComponent(text)}](/${path}/${p1}/${p2})`
     return `- ${link(p2, "view")} ${link("✏️", "edit")} ${link("🗑️", "confirm_delete")}`;
 }
 
@@ -203,10 +205,11 @@ Bun.serve({
                 if (!map.has(k)) map.set(k, []);
                 map.get(k)!.push(v);
             }
-            let md = Array.from(map.entries()).map(
-                ([h, items]) =>
-                    `${homeHeader(h)}\n${items.map(i => homeLine(h, i)).join("\n")}`
-            ).join("\n");
+            let md = Array.from(map.entries())
+                .map(
+                    ([h, items]) =>
+                        `${homeHeader(h)}\n${items.map(i => homeLine(h, i)).join("\n")}`
+                ).join("\n");
             return htmlResponse(toHtml(`${md}\n${homeNewDir}`, "(Magnetar Home)"));
         }
         if (route("/new_dir", "exact", '┃')) {
@@ -230,7 +233,7 @@ Bun.serve({
                 editableify(
                     what,
                     content,
-                    `[Editing] ${what.slice(what.indexOf("/") + 1)}`,
+                    `[Editing] ${decodeURIComponent(what.slice(what.indexOf("/") + 1))}`,
                 ),
             );
         }
@@ -241,16 +244,16 @@ Bun.serve({
             );
         }
         if (route("/headers/")) {
-            let refs = headerIndex.get(what);
+            let refs = headerIndex.get(decodeURIComponent(what));
             if (!refs) return htmlResponse(toHtml("# Something Went Wrong"));
             let md = addHeaderLinks(
                 (await Promise.all(refs.map(readHeaderRef))).join("\n"),
                 headerIndex,
             );
-            return htmlResponse(toHtml(md, `"${what}"`));
+            return htmlResponse(toHtml(md, `"${decodeURIComponent(what)}"`));
         }
         if (route("/confirm_delete/")) {
-            return htmlResponse(confirmDeletePage(what));
+            return htmlResponse(confirmDeletePage(decodeURIComponent(what)));
         }
         if (route("/api.write/")) {
             if (req.method.toUpperCase() !== "POST") {
