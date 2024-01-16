@@ -3,7 +3,20 @@ import {
     addHeaderLinks, populateHeaderIndex, type HeaderIndex, readHeaderRef,
 } from "./header_links";
 import { listMdSources } from "./list_md_sources";
-import { mkdir, unlink } from "fs/promises";
+import { mkdir, readdir, unlink } from "fs/promises";
+import { rmdir as rmdirCallback } from "fs";
+
+function rmdir(path: PathLike): Promise<void> {
+    return new Promise((resolve, reject) => {
+        rmdirCallback(path, err => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
+}
 
 function htmlResponse(src: string): Response {
     let html: string;
@@ -272,6 +285,13 @@ Bun.serve({
         }
         if (route("/api.delete/")) {
             await unlink(`./content/${what}.md`);
+            let slashIndex = what.indexOf("/");
+            let dir = what.slice(0, slashIndex);
+            let dirFilesystem = `./content/${dir}`;
+            let empty = (await readdir(dirFilesystem)).length === 0;
+            if (empty) {
+                await rmdir(dirFilesystem);
+            }
             return new Response("ok");
         }
         if (route("/api.new_dir/")) {
