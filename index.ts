@@ -50,7 +50,7 @@ function homeLine(p1: string, p2: string): string {
 }
 
 function editableify(path: string, contentNow: string, title?: string): string {
-    const fetchpath = `/api.write/${path}`;
+    const fetchpath = `/api.write/${path}?allow_stale_header_index`;
     const fetchjs = `fetch('${fetchpath}', {
         method: 'POST',
         cache: 'no-cache',
@@ -61,7 +61,7 @@ function editableify(path: string, contentNow: string, title?: string): string {
         body: this.value,
     })`;
     const reloadjs = "document.getElementById('editresult').contentWindow.location.reload()";
-    const updatejs =`${fetchjs}.then(() => ${reloadjs})`;
+    const updatejs =`${fetchjs}.then(() => ${reloadjs});throttledPopulate()`;
     return toHtml("", title)
         .replace(
             "<head>",
@@ -96,6 +96,17 @@ function editableify(path: string, contentNow: string, title?: string): string {
             "<body>",
             `
             <body>
+                <script>
+                let populateTimeout = null;
+                function throttledPopulate() {
+                    if (populateTimeout === null) {
+                        populate();
+                        populateTimeout = setTimeout(() => {
+                            populateTimeout = null;
+                        }, 5000);
+                    }
+                }
+                </script>
                 <div class="split-wrapper">
                     <div>
                         <textarea
@@ -169,6 +180,7 @@ console.log(
 
 let headerIndex: HeaderIndex = new Map();
 await populateHeaderIndex(headerIndex);
+let headerIndexStale = false;
 console.log(`Created header index (${headerIndex.size} entries).`);
 
 const port = 7400;
@@ -188,6 +200,12 @@ Bun.serve({
                 console.log(`┗■━ ${exact ? "(exact match)" : `${start}...`}`);
             }
             return matches;
+        };
+        const repopulateHeaderIndexIfNecessary = () => {
+            if (headerIndexStale && !url.searchParams.has("allow_stale_header_index")) {
+                populateHeaderIndex(headerIndex);
+                headerIndexStale = false;
+            }
         };
         if (url.pathname.startsWith("/api.")) {
             const origin = req.headers.get("Origin");
@@ -252,12 +270,14 @@ Bun.serve({
             );
         }
         if (route("/view/")) {
+            repopulateHeaderIndexIfNecessary();
             let file = Bun.file(`./content/${what}.md`);
             return htmlResponse(
                 toHtml(addHeaderLinks(await file.text(), headerIndex))
             );
         }
         if (route("/headers/")) {
+            repopulateHeaderIndexIfNecessary();
             let refs = headerIndex.get(decodeURIComponent(what));
             if (!refs) return htmlResponse(toHtml("# Something Went Wrong"));
             let md = addHeaderLinks(
@@ -283,6 +303,7 @@ Bun.serve({
             }
             writer.end();
             purgeHeaderIndexByPath(headerIndex, what);
+            headerIndexStale = true;
             return new Response("ok");
         }
         if (route("/api.delete/")) {
@@ -294,6 +315,8 @@ Bun.serve({
             if (empty) {
                 await rmdir(dirFilesystem);
             }
+            purgeHeaderIndexByPath(headerIndex, what);
+            headerIndexStale = true;
             return new Response("ok");
         }
         if (route("/api.new_dir/")) {
@@ -303,6 +326,11 @@ Bun.serve({
         }
         if (route("/api.new_doc/")) {
             await Bun.write(`./content/${what}.md`, "");
+            return new Response("ok");
+        }
+        if (route("/api.pop_header_index/")) {
+            populateHeaderIndex(headerIndex);
+            headerIndexStale = false;
             return new Response("ok");
         }
         console.log("┗□━ NOT FOUND")
