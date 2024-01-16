@@ -272,6 +272,9 @@ Bun.serve({
             await mkdir(`./content/${dir}`);
             return new Response("ok");
         }
+        if (route("/api.new_doc/")) {
+            await Bun.write(`./content/${what}.md`, "");
+        }
         console.log("┗□━ NOT FOUND")
         return notFoundResponse(toHtml("# Page Not Found"));
     },
