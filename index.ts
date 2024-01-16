@@ -201,9 +201,9 @@ Bun.serve({
             }
             let md = Array.from(map.entries()).map(
                 ([h, items]) =>
-                    `${homeHeader(h)}\n${items.map(i => homeLine(h, i)).join()}\n${homeNewDir}`
-            ).join();
-            return htmlResponse(toHtml(md, "(Magnetar Home)"));
+                    `${homeHeader(h)}\n${items.map(i => homeLine(h, i)).join("\n")}`
+            ).join("\n");
+            return htmlResponse(toHtml(`${md}\n${homeNewDir}`, "(Magnetar Home)"));
         }
         if (route("/new_dir", "exact")) {
             return htmlResponse(newDirPage);
