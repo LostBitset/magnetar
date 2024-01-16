@@ -160,11 +160,15 @@ console.log(`Serving (on port ${port})...`);
 
 Bun.serve({
     async fetch(req) {
+        console.log();
         let url = new URL(req.url);
         console.log(`┏━━ ${url.pathname}`);
-        const route = (start: string, exact?: "exact") => {
+        const route = (start: string, exact?: "exact", middle?: string) => {
             const matches = exact ? url.pathname === start : url.pathname.startsWith(start);
             if (matches) {
+                if (middle) {
+                    console.log(middle);
+                }
                 console.log(`┗■━ ${exact ? "(exact match)" : `${start}...`}`);
             }
             return matches;
@@ -172,27 +176,27 @@ Bun.serve({
         if (url.pathname.startsWith("/api.")) {
             const origin = req.headers.get("Origin");
             if (!origin) {
-                console.log(`┗□━ ORIGIN NOT FOUND`);
+                console.log(`┃\n┗□━ ORIGIN NOT FOUND`);
                 return new Response("origin not found", { status: 400 });
             }
             if (!allowedOrigins.includes(origin)) {
-                console.log(`┗□━ ORIGIN (${origin}) NOT ALLOWED`);
+                console.log(`┃\n┗□━ ORIGIN (${origin}) NOT ALLOWED`);
                 return new Response("origin not allowed", { status: 400 });
             }
             const antiCsrfHeader = req.headers.get("X-Csrf-Protection");
             if (!antiCsrfHeader) {
-                console.log(`┗□━ ANTI-CSRF HEADER NOT FOUND`);
+                console.log(`┃\n┗□━ ANTI-CSRF HEADER NOT FOUND`);
                 return new Response("anti-csrf header not found", { status: 400 });
             }
             if (antiCsrfHeader !== "sherbert lemon") {
-                console.log(`┗□━ ANTI-CSRF HEADER INVALID`);
+                console.log(`┃\n┗□━ ANTI-CSRF HEADER INVALID`);
                 return new Response("anti-csrf header invalid", { status: 400 });
             }
         }
-        if (route("/favicon.ico", "exact")) {
+        if (route("/favicon.ico", "exact", '┃')) {
             return new Response(Bun.file("./favicon.ico"));
         }
-        if (route("/", "exact")) {
+        if (route("/", "exact", '┃')) {
             let map = new Map<string, string[]>();
             for await (const pair of listMdSources()) {
                 let [k, v] = pair.split("/");
@@ -205,10 +209,10 @@ Bun.serve({
             ).join("\n");
             return htmlResponse(toHtml(`${md}\n${homeNewDir}`, "(Magnetar Home)"));
         }
-        if (route("/new_dir", "exact")) {
+        if (route("/new_dir", "exact", '┃')) {
             return htmlResponse(newDirPage);
         }
-        if (route("/new_doc/")) {
+        if (route("/new_doc/", undefined, '┃')) {
             const dir = url.pathname.slice("/new_doc/".length);
             return htmlResponse(newDocPage(dir));
         }
@@ -274,6 +278,7 @@ Bun.serve({
         }
         if (route("/api.new_doc/")) {
             await Bun.write(`./content/${what}.md`, "");
+            return new Response("ok");
         }
         console.log("┗□━ NOT FOUND")
         return notFoundResponse(toHtml("# Page Not Found"));
