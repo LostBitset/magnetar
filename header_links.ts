@@ -51,6 +51,7 @@ const headerRegexes = [1, 2, 3, 4, 5, 6].map(
 
 export async function populateHeaderIndex(headerIndex: HeaderIndex) {
     for await (const path of listMdSources()) {
+        console.log(`⮱ ${decodeURIComponent(path)}`);
         let file = Bun.file(`./content/${path}.md`);
         let text = await file.text();
         let start: number & keyof typeof text = 0;
@@ -75,10 +76,27 @@ export async function populateHeaderIndex(headerIndex: HeaderIndex) {
                 }
                 if (octothorpes === 0) continue;
                 let key = sliceUntil(text, "\n", offset + 1);
-                if (!headerIndex.has(key)) headerIndex.set(key, [])
-                headerIndex.get(key)!.push({
+                if (!headerIndex.has(key)) headerIndex.set(key, []);
+                let ref = {
                     path, start, end,
-                });
+                };
+                let array = headerIndex.get(key)!;
+                if (!array.includes(ref)) {
+                    console.log(`  ⮱ ${key}`);
+                    array.push(ref);
+                }
             }
+    }
+}
+
+export function purgeHeaderIndexByPath(headerIndex: HeaderIndex, path: string) {
+    for (const refs of headerIndex.values()) {
+        let offset = 0;
+        for (const [i, ref] of refs.entries()) {
+            if (ref.path === path) {
+                refs.splice(i - offset, 1);
+                offset++;
+            }
+        }
     }
 }

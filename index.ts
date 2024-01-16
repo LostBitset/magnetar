@@ -1,6 +1,7 @@
 import { toHtml } from "./md_to_html";
 import {
-    addHeaderLinks, populateHeaderIndex, type HeaderIndex, readHeaderRef,
+    addHeaderLinks, populateHeaderIndex, purgeHeaderIndexByPath, readHeaderRef,
+    type HeaderIndex,
 } from "./header_links";
 import { listMdSources } from "./list_md_sources";
 import { mkdir, readdir, unlink } from "fs/promises";
@@ -281,6 +282,7 @@ Bun.serve({
                 writer.write(chunk);
             }
             writer.end();
+            purgeHeaderIndexByPath(headerIndex, what);
             return new Response("ok");
         }
         if (route("/api.delete/")) {
