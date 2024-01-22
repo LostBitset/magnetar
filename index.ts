@@ -100,10 +100,13 @@ function editableify(path: string, contentNow: string, title?: string): string {
                 let populateTimeout = null;
                 function throttledPopulate() {
                     if (populateTimeout === null) {
-                        populate();
-                        populateTimeout = setTimeout(() => {
-                            populateTimeout = null;
-                        }, 5000);
+                        fetch("/api.pop_header_index")
+                            .then(() => ${reloadjs})
+                            .then(() => {
+                                populateTimeout = setTimeout(() => {
+                                    populateTimeout = null;
+                                }, 5000);
+                            });
                     }
                 }
                 </script>
@@ -238,18 +241,23 @@ Bun.serve({
                 map.get(k)!.push(v);
             }
             let md = Array.from(map.entries())
-                .map(
-                    ([h, items]) =>
-                        `${homeHeader(h)}\n${items.map(i => homeLine(h, i)).join("\n")}`
+            .map(
+                ([h, items]) =>
+                `${homeHeader(h)}\n${items.map(i => homeLine(h, i)).join("\n")}`
                 ).join("\n");
-            return htmlResponse(toHtml(`${md}\n${homeNewDir}`, "(Magnetar Home)"));
-        }
-        if (route("/new_dir", "exact", '┃')) {
-            return htmlResponse(newDirPage);
-        }
-        if (route("/new_doc/", undefined, '┃')) {
+                return htmlResponse(toHtml(`${md}\n${homeNewDir}`, "(Magnetar Home)"));
+            }
+            if (route("/new_dir", "exact", '┃')) {
+                return htmlResponse(newDirPage);
+            }
+            if (route("/new_doc/", undefined, '┃')) {
             const dir = url.pathname.slice("/new_doc/".length);
             return htmlResponse(newDocPage(dir));
+        }
+        if (route("/api.pop_header_index")) {
+            populateHeaderIndex(headerIndex);
+            headerIndexStale = false;
+            return new Response("ok");
         }
         let secondSlashIndex = url.pathname.slice(1).indexOf("/");
         let what = url.pathname.slice(secondSlashIndex + 2);
@@ -326,11 +334,6 @@ Bun.serve({
         }
         if (route("/api.new_doc/")) {
             await Bun.write(`./content/${what}.md`, "");
-            return new Response("ok");
-        }
-        if (route("/api.pop_header_index/")) {
-            populateHeaderIndex(headerIndex);
-            headerIndexStale = false;
             return new Response("ok");
         }
         console.log("┗□━ NOT FOUND")
