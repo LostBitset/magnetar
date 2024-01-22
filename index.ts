@@ -61,7 +61,7 @@ function editableify(path: string, contentNow: string, title?: string): string {
         body: this.value,
     })`;
     const reloadjs = "document.getElementById('editresult').contentWindow.location.reload()";
-    const updatejs =`${fetchjs}.then(() => ${reloadjs});throttledPopulate()`;
+    const updatejs =`${fetchjs}.then(() => ${reloadjs})`;
     return toHtml("", title)
         .replace(
             "<head>",
@@ -97,27 +97,30 @@ function editableify(path: string, contentNow: string, title?: string): string {
             `
             <body>
                 <script>
-                let populateTimeout = null;
-                function throttledPopulate() {
-                    if (populateTimeout === null) {
-                        fetch("/api.pop_header_index")
-                            .then(() => ${reloadjs})
-                            .then(() => {
-                                populateTimeout = setTimeout(() => {
-                                    populateTimeout = null;
-                                }, 5000);
-                            });
-                    }
-                }
+                let stale = true;
+                setInterval(() => {
+                    if (!stale) return;
+                    fetch("/api.pop_header_index", {
+                        method: 'POST',
+                        cache: 'no-cache',
+                        headers: {
+                            'X-Csrf-Protection': 'sherbert lemon',
+                        },
+                    })
+                        .then(() => {
+                            stale = false;
+                            ${reloadjs};
+                        });
+                }, 2000);
                 </script>
                 <div class="split-wrapper">
                     <div>
                         <textarea
-                            oninput="${updatejs}" class="editor"
+                            oninput="${updatejs};stale=true" class="editor"
                         >${Bun.escapeHTML(contentNow)}</textarea>
                     </div>
                     <div>
-                        <iframe src="/view/${path}" id="editresult">
+                        <iframe src="/view/${path}?allow_stale_header_index" id="editresult">
             `.trim(),
         )
         .replace("</body>", "</div></div></body>")
@@ -211,6 +214,10 @@ Bun.serve({
             }
         };
         if (url.pathname.startsWith("/api.")) {
+            if (req.method.toUpperCase() !== "POST") {
+                console.log(`┃\n┗□━ METHOD MUST BE POST`);
+                return new Response("please POST", { status: 405 });
+            }
             const origin = req.headers.get("Origin");
             if (!origin) {
                 console.log(`┃\n┗□━ ORIGIN NOT FOUND`);
@@ -298,9 +305,6 @@ Bun.serve({
             return htmlResponse(confirmDeletePage(decodeURIComponent(what)));
         }
         if (route("/api.write/")) {
-            if (req.method.toUpperCase() !== "POST") {
-                return new Response("please POST", { status: 405 });
-            }
             if (!req.body) {
                 return new Response("needs a body", { status: 400 });
             }
@@ -310,7 +314,7 @@ Bun.serve({
                 writer.write(chunk);
             }
             writer.end();
-            purgeHeaderIndexByPath(headerIndex, what);
+            headerIndex.clear();
             headerIndexStale = true;
             return new Response("ok");
         }
@@ -323,7 +327,7 @@ Bun.serve({
             if (empty) {
                 await rmdir(dirFilesystem);
             }
-            purgeHeaderIndexByPath(headerIndex, what);
+            headerIndex.clear();
             headerIndexStale = true;
             return new Response("ok");
         }

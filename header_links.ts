@@ -88,15 +88,3 @@ export async function populateHeaderIndex(headerIndex: HeaderIndex) {
             }
     }
 }
-
-export function purgeHeaderIndexByPath(headerIndex: HeaderIndex, path: string) {
-    for (const refs of headerIndex.values()) {
-        let offset = 0;
-        for (const [i, ref] of refs.entries()) {
-            if (ref.path === path) {
-                refs.splice(i - offset, 1);
-                offset++;
-            }
-        }
-    }
-}
