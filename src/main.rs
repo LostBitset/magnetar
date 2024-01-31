@@ -2,9 +2,10 @@ use warp::Filter;
 
 #[tokio::main]
 async fn main() {
-    let hello =
-        warp::path!("hello" / String).map(|name| format!("Hello, {}!", name));
-    warp::serve(hello)
+    let filter =
+        warp::path!("view" / String / String)
+        .map(|dir, file| format!("converted/{dir}/{file}"));
+    warp::serve(filter)
         .run(([127, 0, 0, 1], 7404))
         .await;
 }
