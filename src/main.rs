@@ -1,7 +1,7 @@
 use std::fs;
 
 use urlencoding::decode;
-use warp::{Filter, path};
+use warp::{Filter, path, reply::{WithHeader, WithStatus}, http::StatusCode};
 
 #[derive(Debug, Clone)]
 struct PathPart(String);
@@ -31,19 +31,30 @@ impl std::str::FromStr for PathPart {
     }
 }
 
+fn html_reply<T: warp::Reply>(body: T, status: StatusCode) -> WithStatus<WithHeader<T>> {
+    warp::reply::with_status(
+        warp::reply::with_header(
+            body,
+            "Content-Type",
+            "text/html"
+        ),
+        status
+    )
+}
+
 #[tokio::main]
 async fn main() {
     let filter =
         path!("view" / PathPart / PathPart)
         .map(|dir: PathPart, name: PathPart| {
             fs::read_to_string(format!("converted/{}/{}", dir.0, name.0))
-                .map(|body| warp::reply::with_status(
+                .map(|body| html_reply(
                     body,
-                    warp::http::StatusCode::OK
+                    StatusCode::OK
                 ))
-                .unwrap_or(warp::reply::with_status(
+                .unwrap_or(html_reply(
                     "Page not found :(".to_owned(),
-                    warp::http::StatusCode::NOT_FOUND
+                    StatusCode::NOT_FOUND
                 ))
         });
     warp::serve(filter)
