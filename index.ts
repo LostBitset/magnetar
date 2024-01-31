@@ -97,26 +97,11 @@ function editableify(path: string, contentNow: string, title?: string): string {
             `
             <body>
                 <script>
-                let stale = true;
-                setInterval(() => {
-                    if (!stale) return;
-                    fetch("/api.pop_header_index", {
-                        method: 'POST',
-                        cache: 'no-cache',
-                        headers: {
-                            'X-Csrf-Protection': 'sherbert lemon',
-                        },
-                    })
-                        .then(() => {
-                            stale = false;
-                            ${reloadjs};
-                        });
-                }, 2000);
                 </script>
                 <div class="split-wrapper">
                     <div>
                         <textarea
-                            oninput="${updatejs};stale=true" class="editor"
+                            oninput="${updatejs}" class="editor"
                         >${Bun.escapeHTML(contentNow)}</textarea>
                     </div>
                     <div>
